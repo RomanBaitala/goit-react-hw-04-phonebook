@@ -1,88 +1,99 @@
-import { Component } from 'react';
+import { useEffect } from 'react';
 import { Section } from './Section/Section';
-import { Form } from './Section/Form/Form';
+import { ContactForm } from './Section/Form/Form';
 import { ContactsList } from './Section/ContactsList/ContactsList';
 import { Filter } from './Section/Filter/Filter';
+import { useState } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { nanoid } from 'nanoid';
 
-class App extends Component {
-  state = {
-    contacts: [],
-    filter: '',
+const LS_CONTACTS_KEY = 'contacts';
+
+export const App = () => {
+  const [contacts, setContacts] = useState(
+    JSON.parse(localStorage.getItem(LS_CONTACTS_KEY))
+  );
+  const [filter, setFilter] = useState('');
+
+  useEffect(() => {
+    localStorage.getItem(LS_CONTACTS_KEY);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(LS_CONTACTS_KEY, JSON.stringify(contacts));
+  }, [contacts]);
+
+  const addContactItem = ({ id, name, number }) => {
+    name = name.trim();
+    const normalizedName = name.toLocaleLowerCase();
+
+    if (id !== '' && id !== null) {
+      onDeleteContact(id);
+    } else {
+      if (
+        contacts.some(({ name }) => name.toLocaleLowerCase() === normalizedName)
+      ) {
+        toast.warn('This name is already exsist in your list🐷', {
+          position: 'top-right',
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'dark',
+        });
+        return;
+      }
+
+      id ||= nanoid();
+      onContactSvae({ id, name, number });
+      return id;
+    }
   };
 
-  componentDidMount() {
-    const savedContacts = localStorage.getItem('contacts');
-    if (savedContacts !== null) {
-      this.setState({
-        contacts: JSON.parse(savedContacts),
-      });
-    }
-  }
+  const onContactSvae = ({ id, name, number }) => {
+    setContacts(pC => [...pC, { id, name, number }]);
+  };
 
-  componentDidUpdate(_, prevState) {
-    if (prevState.contacts !== this.state.contacts) {
-      localStorage.setItem('contacts', JSON.stringify(this.state.contacts));
-    }
-  }
-  addToContactList = newContact => {
-    const { name: newName } = newContact;
-    const normalizedNewName = newName.toLowerCase();
+  const onDeleteContact = id => {
+    if (contacts.length === 1) clearFilterField();
+    setContacts(pC => pC.filter(contact => contact.id !== id));
+  };
 
-    !this.state.contacts.find(
-      ({ name: prevName }) => prevName.toLowerCase() === normalizedNewName
+  const onFilterContacts = ({ currentTarget: { value } }) => {
+    setFilter(value);
+  };
+
+  const clearFilterField = () => {
+    setFilter('');
+  };
+
+  const normalizedFilter = filter.toLocaleLowerCase();
+  const filteredContacts = contacts
+    .filter(contact =>
+      contact?.name?.toLocaleLowerCase().includes(normalizedFilter)
     )
-      ? this.setState(({ contacts }) => ({
-          contacts: [...contacts, newContact],
-        }))
-      : alert(`${newName} is already in contacts`);
-  };
+    .sort((a, b) => a.name.localeCompare(b.name));
 
-  filterContacts = e => {
-    const { value } = e.currentTarget;
-
-    this.setState({ filter: value });
-  };
-
-  findContact = () => {
-    const { contacts, filter } = this.state;
-    const normilizedFilterValue = filter.toLowerCase();
-
-    return contacts.filter(({ name }) =>
-      name.toLowerCase().includes(normilizedFilterValue)
-    );
-  };
-
-  deleteContact = contactId => {
-    this.setState(({ contacts }) => ({
-      contacts: contacts.filter(({ id }) => id !== contactId),
-    }));
-  };
-
-  render() {
-    const { filter } = this.state;
-    const foundContact = this.findContact();
-    return (
-      <>
-        <Section title="Phonebook">
-          <Form addToContactList={this.addToContactList} />
-        </Section>
-        <Section title="Contacts">
-          {this.state.contacts.length > 0 && (
-            <>
-              <Filter
-                filterContacts={this.filterContacts}
-                filterValue={filter}
-              />
-              <ContactsList
-                foundContact={foundContact}
-                deleteContact={this.deleteContact}
-              />
-            </>
-          )}
-        </Section>
-      </>
-    );
-  }
-}
-
-export default App;
+  return (
+    <>
+      <ToastContainer />
+      <Section title="Phonebook">
+        <ContactForm onSubmit={addContactItem} />
+      </Section>
+      <Section title="Contacts">
+        {contacts.length > 0 && (
+          <>
+            <Filter filterContacts={onFilterContacts} filterValue={filter} />
+            <ContactsList
+              foundContact={filteredContacts}
+              deleteContact={onDeleteContact}
+            />
+          </>
+        )}
+      </Section>
+    </>
+  );
+};

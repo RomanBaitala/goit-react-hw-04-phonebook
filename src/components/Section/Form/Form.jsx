@@ -1,70 +1,75 @@
-import PropTypes from 'prop-types';
-import { nanoid } from 'nanoid';
-import { Component } from 'react';
+import React, { useState } from 'react';
 
-export class Form extends Component {
-  state = {
-    id: '',
-    name: '',
-    number: '',
+const initialValues = { id: '', name: '', number: '' };
+const submitButtonText = 'Add user';
+
+export const ContactForm = ({ onSubmit }) => {
+  const [id, setId] = useState('');
+  const [name, setName] = useState('');
+  const [number, setNumber] = useState('');
+
+  const setInitialValues = () => {
+    setId(initialValues.id);
+    setName(initialValues.name);
+    setNumber(initialValues.number);
   };
 
-  handleNameChange = e => {
-    const { name, value } = e.currentTarget;
-
-    this.setState({ id: nanoid(8), [name]: value });
-  };
-
-  handleSubmitForm = e => {
+  const contactSubmitHandler = e => {
     e.preventDefault();
+    const { id, name, number } = e.target.elements;
+    const userAddedSuccessfully = onSubmit({
+      id: id.value,
+      name: name.value,
+      number: number.value,
+    });
 
-    const { addToContactList } = this.props;
-
-    addToContactList(this.state);
-
-    this.reset();
+    if (userAddedSuccessfully) setInitialValues();
   };
 
-  reset = () => {
-    this.setState({ name: '', number: '' });
+  const handleChange = e => {
+    const value = e?.currentTarget?.value;
+    switch (e?.currentTarget?.name) {
+      case 'name':
+        setName(value);
+        break;
+      case 'number':
+        setNumber(value);
+        break;
+      default:
+        return;
+    }
   };
 
-  render() {
-    return (
-      <form onSubmit={this.handleSubmitForm}>
-        <label>
-          Name
-          <input
-            type="text"
-            name="name"
-            value={this.state.name}
-            onChange={this.handleNameChange}
-            autoComplete="off"
-            pattern="^[a-zA-Zа-яА-Я]+(([' -][a-zA-Zа-яА-Я ])?[a-zA-Zа-яА-Я]*)*$"
-            title="Name may contain only letters, apostrophe, dash and spaces. For example Adrian, Jacob Mercer, Charles de Batz de Castelmore d'Artagnan"
-            required
-          />
-          <label>
-            Number
-            <input
-              type="tel"
-              name="number"
-              value={this.state.number}
-              onChange={this.handleNameChange}
-              autoComplete="off"
-              pattern="\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}"
-              title="Phone number must be digits and can contain spaces, dashes, parentheses and can start with +"
-              required
-            />
-          </label>
-        </label>
-
-        <button type="submit">add to contacts</button>
-      </form>
-    );
-  }
-}
-
-Form.propTypes = {
-  addToContactList: PropTypes.func.isRequired,
+  return (
+    <form action="#" onSubmit={contactSubmitHandler}>
+      <input name="id" defaultValue={id} hidden />
+      <div>
+        <label htmlFor="contactName">Name</label>
+        <input
+          id="contactName"
+          type="text"
+          name="name"
+          value={name}
+          title="Enter your name"
+          required
+          onChange={handleChange}
+        />
+      </div>
+      <div>
+        <label htmlFor="contactNumber">Phone number</label>
+        <input
+          type="tel"
+          name="number"
+          value={number}
+          pattern="\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,15}"
+          title="Phone number must be up to 15 digits and can contain spaces, dashes, parentheses and can start with +"
+          required
+          onChange={handleChange}
+        />
+      </div>
+      <div>
+        <button type="submit">{submitButtonText}</button>
+      </div>
+    </form>
+  );
 };
